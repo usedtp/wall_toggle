@@ -1,3 +1,5 @@
+import { log } from "./diag.mjs";
+
 const MODULE = "wall-movement-toggle";
 let busy = false;
 
@@ -47,8 +49,8 @@ async function setMode(target) {
 
     await scene.setFlag(MODULE, "mode", target ?? "");
   } catch (err) {
-    console.error(`${MODULE} |`, err);
-    ui.notifications.error("Wall Movement Toggle failed. See console (F12).");
+    log().error("toggle", err, { target, scene: scene.id });
+    ui.notifications.error("Wall Movement Toggle failed. The error is in usedtp Logger.");
   } finally {
     busy = false;
     refreshControls();
@@ -64,6 +66,8 @@ function pressMode(target) {
 function refreshControls() {
   ui.controls?.render({ reset: true });
 }
+
+Hooks.once("ready", () => log().info("ready"));
 
 Hooks.once("init", () => {
   game.keybindings.register(MODULE, "toggleWalls", {
@@ -117,11 +121,18 @@ Hooks.on("updateScene", (scene, changes) => {
   if (!foundry.utils.hasProperty(changes, `flags.${MODULE}.mode`)) return;
   if (scene.id !== canvas?.scene?.id) return;
   const mode = getMode(scene);
-  const msg = mode === "all" ? "Walls and doors no longer block movement."
-    : mode === "walls" ? "Walls no longer block movement. Doors still do."
-    : "Walls and doors block movement again.";
+  const msg = mode === "all" ? "Walls, doors and tokens no longer block movement."
+    : mode === "walls" ? "Walls and tokens no longer block movement. Doors still do."
+    : "Walls, doors and tokens block movement again.";
   ui.notifications.info(msg);
   if (game.user.isGM) refreshControls();
 });
 
 Hooks.on("canvasReady", () => { if (game.user.isGM) refreshControls(); });
+
+// dnd5e: while either mode is on, other creatures' tokens don't block movement either.
+// Runs on the client of whoever drags, so it applies to players too. No effect on other systems.
+Hooks.on("dnd5e.determineOccupiedGridSpaceBlocking", (gridSpace, token, options, found) => {
+  const scene = token?.document?.parent ?? canvas?.scene;
+  if (getMode(scene) && typeof found?.clear === "function") found.clear();
+});

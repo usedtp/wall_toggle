@@ -1,0 +1,63 @@
+# Publishes a release whenever main gets a module.json version that has no release yet.
+# To release: bump "version" in module.json (and CHANGELOG.md), push to main. Nothing else.
+# Builds the two files Foundry needs and attaches them to the release:
+#   module.json  (manifest; "latest" always points at the newest release)
+#   module.zip   (the module, with module.json at its root)
+name: Release
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Read version
+        id: v
+        run: |
+          VERSION="$(jq -r .version module.json)"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if git rev-parse -q --verify "refs/tags/$VERSION" >/dev/null; then
+            echo "Release $VERSION already exists; nothing to do."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/setup-node@v4
+        if: steps.v.outputs.skip != 'true'
+        with:
+          node-version: 22
+      - name: Run tests
+        if: steps.v.outputs.skip != 'true'
+        run: npm test
+      - name: Write repository URLs into module.json
+        if: steps.v.outputs.skip != 'true'
+        run: |
+          BASE="https://github.com/${GITHUB_REPOSITORY}"
+          TAG="${{ steps.v.outputs.version }}"
+          jq --arg base "$BASE" --arg tag "$TAG" '
+            .url = $base
+            | .manifest = ($base + "/releases/latest/download/module.json")
+            | .download = ($base + "/releases/download/" + $tag + "/module.zip")
+            | .bugs = ($base + "/issues")
+            | .readme = ($base + "#readme")
+            | .changelog = ($base + "/blob/main/CHANGELOG.md")
+          ' module.json > module.tmp && mv module.tmp module.json
+      - name: Package
+        if: steps.v.outputs.skip != 'true'
+        run: zip -r module.zip module.json scripts README.md CHANGELOG.md LICENSE
+      - name: Publish release
+        if: steps.v.outputs.skip != 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.v.outputs.version }}
+          target_commitish: ${{ github.sha }}
+          name: ${{ steps.v.outputs.version }}
+          body: "See CHANGELOG.md."
+          make_latest: true
+          files: |
+            module.json
+            module.zip

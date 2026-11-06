@@ -1,8 +1,9 @@
 # Wall Movement Toggle
 
-Foundry VTT module for v14. Covers every Scene Level. One click stops walls from blocking token movement on the current scene, for every player. Click again to restore.
+Foundry VTT module for v14. Requires [usedtp Logger](https://github.com/usedtp/usedtp-logger), which Foundry installs with it. Covers every Scene Level. One click stops walls from blocking token movement on the current scene, for every player. Click again to restore.
 
 - Two modes: walls only (closed doors still block), or walls and doors.
+- dnd5e: other creatures' tokens stop blocking movement too, in both modes.
 - Sight, light and sound walls are untouched.
 - Every wall's original setting is saved and restored exactly.
 - GM and Assistant GM only.
@@ -21,12 +22,20 @@ Foundry VTT module for v14. Covers every Scene Level. One click stops walls from
 In Foundry: Add-on Modules > Install Module > paste the manifest URL:
 
 ```
-https://github.com/<you>/<repo>/releases/latest/download/module.json
+https://github.com/usedtp/wall_toggle/releases/latest/download/module.json
 ```
 
 ## Note
 
 A token moved through a wall gets vision on the other side, so players can see areas behind walls while the toggle is on.
+
+## Errors
+
+If a toggle fails, the error goes to usedtp Logger: Game Settings > usedtp Logger > Open logs, filtered by Wall Movement Toggle.
+
+## Releases
+
+Bump `version` in module.json and add a CHANGELOG entry, then push to main. GitHub Actions runs the tests and publishes the release.
 
 ## License
 
