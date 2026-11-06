@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.2.0
+- Right-click either toolbar button for Report error or Report unclear. GM only. The report carries the mode, scene and wall counts.
+
 ## 1.1.0
 - Errors now go to usedtp Logger. Requires the usedtp Logger module (installed automatically).
 - Includes the 1.0.2 change in the repo source: on dnd5e, other creatures' tokens stop blocking movement while a mode is on.

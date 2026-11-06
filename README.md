@@ -16,6 +16,7 @@ Foundry VTT module for v14. Requires [usedtp Logger](https://github.com/usedtp/u
   - Open door: walls and closed doors don't block.
   - Click the lit button to restore. Click the other button to switch modes directly.
 - **Hotkeys:** set one for each mode in Configure Controls > Wall Movement Toggle.
+- **Report a problem:** right-click either button, then Report error or Report unclear. The report includes the mode, scene and wall counts, and shows in usedtp Logger > Open logs.
 
 ## Install
 

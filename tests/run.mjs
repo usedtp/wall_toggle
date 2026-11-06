@@ -51,10 +51,33 @@ const f2 = new Set(["x"]); hooks["dnd5e.determineOccupiedGridSpaceBlocking"].for
 assert(f2.size===0, "token blocking cleared in walls mode");
 
 // A failed toggle is reported to usedtp Logger.
-const errors = [];
-game.modules.get = id => id === "usedtp-logger" ? { api: { register: () => ({ error: (m, e) => errors.push(m), info() {}, warn() {} }) } } : null;
+const errors = []; const opened = [];
+game.modules.get = id => id === "usedtp-logger" ? { api: { register: () => ({
+  error: (m, e) => errors.push(m), info() {}, warn() {},
+  guard: async (l, fn) => fn(),
+  openReport: (cat, ctx) => opened.push({ cat, ctx })
+}) } } : null;
 scene.updateEmbeddedDocuments = async () => { throw new Error("boom"); };
 flags.mode = ""; for (const w of walls.values()) w.move = 20;
 await game.keybindings.reg.toggleWalls.onDown(); await new Promise(r => setTimeout(r, 10));
 assert(errors.includes("toggle"), "toggle failure sent to usedtp Logger");
+// Right-click report menu: GM only, two items, opens the logger report with context.
+const menus = [];
+globalThis.HTMLElement = class { constructor() { this.dataset = {}; } };
+foundry.applications = { ux: { ContextMenu: { implementation: class { constructor(root, sel, items) { menus.push({ sel, items }); } } } } };
+const root = new HTMLElement();
+game.user.isGM = false;
+hooks.renderSceneControls.forEach(f => f({}, root));
+assert(menus.length === 0, "players get no report menu");
+game.user.isGM = true;
+hooks.renderSceneControls.forEach(f => f({}, root));
+hooks.renderSceneControls.forEach(f => f({}, root));
+assert(menus.length === 1, "menu attached once per toolbar");
+assert(menus[0].sel.includes("wmtWalls") && menus[0].sel.includes("wmtAll"), "menu on both buttons");
+assert(menus[0].items.map(i => i.label).join("|") === "Report error|Report unclear", "labels are Report error and Report unclear");
+await menus[0].items[1].onClick();
+assert(opened[0]?.cat === "unclear" && opened[0].ctx.scene === "s1" && "mode" in opened[0].ctx && opened[0].ctx.walls >= 1, "unclear report opens with scene context");
+await menus[0].items[0].onClick();
+assert(opened[1]?.cat === "error", "error report opens");
+
 console.log(process.exitCode ? "FAILED" : "all passed");

@@ -67,7 +67,38 @@ function refreshControls() {
   ui.controls?.render({ reset: true });
 }
 
+/** What the GM sees when reporting: mode, scene and wall counts. */
+function reportContext() {
+  const scene = canvas?.scene;
+  const walls = scene ? [...scene.walls] : [];
+  return {
+    mode: getMode(scene),
+    scene: scene?.id,
+    sceneName: scene?.name,
+    walls: walls.length,
+    blocking: walls.filter(w => w.move !== CONST.WALL_MOVEMENT_TYPES.NONE).length,
+    saved: (scene?.getFlag(MODULE, "saved") ?? []).length,
+    busy
+  };
+}
+
+/** Right-click either toolbar button: Report error or Report unclear. Attached once per toolbar element. */
+function attachReportMenu(root) {
+  if (!(root instanceof HTMLElement) || root.dataset.wmtReportMenu) return;
+  root.dataset.wmtReportMenu = "1";
+  const report = category => log().guard("report menu", () => log().openReport(category, reportContext()));
+  new foundry.applications.ux.ContextMenu.implementation(root, '[data-tool="wmtWalls"], [data-tool="wmtAll"]', [
+    { label: "Report error", icon: '<i class="fa-solid fa-triangle-exclamation"></i>', onClick: () => report("error") },
+    { label: "Report unclear", icon: '<i class="fa-solid fa-circle-question"></i>', onClick: () => report("unclear") }
+  ], { jQuery: false, fixed: true });
+}
+
 Hooks.once("ready", () => log().info("ready"));
+
+Hooks.on("renderSceneControls", (app, html) => {
+  if (!game.user.isGM) return;
+  try { attachReportMenu(html instanceof HTMLElement ? html : html?.[0]); } catch (err) { log().error("report menu attach", err); }
+});
 
 Hooks.once("init", () => {
   game.keybindings.register(MODULE, "toggleWalls", {
@@ -95,7 +126,7 @@ Hooks.on("getSceneControlButtons", (controls) => {
     const base = Object.keys(group.tools).length;
     group.tools.wmtWalls = {
       name: "wmtWalls",
-      title: "Walls Don't Block (doors still block)",
+      title: "Walls Don't Block (doors still block). Right-click to report.",
       icon: "fa-solid fa-person-walking",
       order: base,
       toggle: true,
@@ -105,7 +136,7 @@ Hooks.on("getSceneControlButtons", (controls) => {
     };
     group.tools.wmtAll = {
       name: "wmtAll",
-      title: "Walls and Doors Don't Block",
+      title: "Walls and Doors Don't Block. Right-click to report.",
       icon: "fa-solid fa-door-open",
       order: base + 1,
       toggle: true,

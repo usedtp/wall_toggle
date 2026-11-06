@@ -2,7 +2,7 @@
   "id": "wall-movement-toggle",
   "title": "Wall Movement Toggle",
   "description": "One-click GM toggle that stops walls from blocking token movement on the current scene, with or without doors. On dnd5e, other tokens stop blocking too. Works across all Scene Levels. Sight, light and sound are untouched. Toggling back restores every wall exactly. Errors go to usedtp Logger.",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "compatibility": {
     "minimum": "14",
     "verified": "14.370"
